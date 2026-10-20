@@ -1,4 +1,5 @@
 # ClaimTrack
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/oryvenx/claimtrack/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/oryvenx/claimtrack/tree/main)
 
 A small health insurance claims API built with Flask, SQLAlchemy and PostgreSQL.
 Practice project for the Alan stack.
@@ -63,3 +64,8 @@ Tests run against a separate Postgres database (`claimtrack_test`), built from t
     pytest
 
 Override the database with `TEST_DATABASE_URL` (its name must end in `_test`).
+
+## CI
+
+Every push runs the test suite on CircleCI (Python + a Postgres 16 service container).
+Config: `.circleci/config.yml`.
