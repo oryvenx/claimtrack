@@ -1,0 +1,44 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.14
+      - image: cimg/postgres:16.4
+        environment:
+          POSTGRES_USER: claimtrack
+          POSTGRES_PASSWORD: claimtrack
+          POSTGRES_DB: claimtrack_test
+    environment:
+      DATABASE_URL: postgresql://claimtrack:claimtrack@localhost:5432/claimtrack_test
+      TEST_DATABASE_URL: postgresql://claimtrack:claimtrack@localhost:5432/claimtrack_test
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - venv-v1-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install -r requirements-dev.txt
+      - save_cache:
+          key: venv-v1-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          paths:
+            - .venv
+      - run:
+          name: Wait for Postgres
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: Run tests
+          command: |
+            . .venv/bin/activate
+            pytest --junitxml=test-results/junit.xml
+      - store_test_results:
+          path: test-results
+
+workflows:
+  ci:
+    jobs:
+      - test
