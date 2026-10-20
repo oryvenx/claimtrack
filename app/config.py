@@ -18,3 +18,4 @@ def _normalize_db_url(url: str | None) -> str | None:
 
 class Config:
     SQLALCHEMY_DATABASE_URI = _normalize_db_url(os.environ.get("DATABASE_URL"))
+    REVIEWER_API_KEY = os.environ.get("REVIEWER_API_KEY")

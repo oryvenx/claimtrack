@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
-from app.auth import get_current_member
+from app.auth import get_current_member, require_reviewer
 from app.errors import ApiError
 from app.extensions import db
-from app.models import Claim, ClaimStatus
+from app.models import Claim, ClaimStatus, utcnow
 from app.schemas import ClaimCreate
 from app.serializers import serialize_claim
 from app.validation import parse_body
@@ -87,3 +87,37 @@ def get_claim(claim_id: int):
     if claim is None:
         raise ApiError("Claim not found", 404)
     return jsonify(serialize_claim(claim))
+
+
+def _decide(claim_id: int, new_status: ClaimStatus):
+    require_reviewer()
+
+    now = utcnow()
+    # Atomic check-and-set: only a still-pending claim matches the WHERE clause
+    claim = db.session.scalar(
+        update(Claim)
+        .where(Claim.id == claim_id, Claim.status == ClaimStatus.PENDING)
+        .values(status=new_status, decided_at=now, updated_at=now)
+        .returning(Claim)
+    )
+
+    if claim is None:
+        # Nothing updated: either the claim does not exist or it was already decided
+        db.session.rollback()
+        existing = db.session.get(Claim, claim_id)
+        if existing is None:
+            raise ApiError("Claim not found", 404)
+        raise ApiError(f"Claim is already {existing.status.value}", 409)
+
+    db.session.commit()
+    return jsonify(serialize_claim(claim))
+
+
+@bp.post("/claims/<int:claim_id>/approve")
+def approve_claim(claim_id: int):
+    return _decide(claim_id, ClaimStatus.APPROVED)
+
+
+@bp.post("/claims/<int:claim_id>/reject")
+def reject_claim(claim_id: int):
+    return _decide(claim_id, ClaimStatus.REJECTED)

@@ -42,3 +42,13 @@ Errors are always JSON: `{"error": "...", "details": [...]}`.
 
 List response: `{"items": [...], "total": 3, "limit": 20, "offset": 0}`.
 Claims belonging to other members return 404.
+
+## Reviewer endpoints
+
+Reviewers authenticate with a shared secret in `X-Reviewer-Key` (set `REVIEWER_API_KEY` in `.env`).
+
+    curl -X POST localhost:5001/claims/1/approve -H "X-Reviewer-Key: $KEY"
+    curl -X POST localhost:5001/claims/1/reject  -H "X-Reviewer-Key: $KEY"
+
+A claim can be decided once: deciding an already decided claim returns 409.
+The check and update happen in a single atomic SQL statement to avoid races.
