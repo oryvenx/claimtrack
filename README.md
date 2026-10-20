@@ -52,3 +52,14 @@ Reviewers authenticate with a shared secret in `X-Reviewer-Key` (set `REVIEWER_A
 
 A claim can be decided once: deciding an already decided claim returns 409.
 The check and update happen in a single atomic SQL statement to avoid races.
+
+## Tests
+
+Tests run against a separate Postgres database (`claimtrack_test`), built from the migrations.
+
+    pip install -r requirements-dev.txt
+    docker compose up -d
+    docker compose exec db psql -U claimtrack -d claimtrack -c "CREATE DATABASE claimtrack_test;"   # once
+    pytest
+
+Override the database with `TEST_DATABASE_URL` (its name must end in `_test`).
